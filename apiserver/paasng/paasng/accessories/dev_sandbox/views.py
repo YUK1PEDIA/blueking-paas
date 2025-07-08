@@ -119,6 +119,10 @@ class DevSandboxViewSet(GenericViewSet, ApplicationCodeInPathMixin):
         envs = generate_envs(module)
         if data["inject_staging_env_vars"]:
             stag_env = module.get_envs(AppEnvironment.STAGING)
+            enabled_addons_services = get_env_variables(
+                stag_env, enabled_addons_services=data.get("enabled_addons_services")
+            )
+            envs.update(enabled_addons_services)
             envs.update(get_env_variables(stag_env))
 
         env_lists = [{"key": k, "value": v, "source": "stag"} for k, v in envs.items()]
