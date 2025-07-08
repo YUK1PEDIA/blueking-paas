@@ -15,6 +15,7 @@
 # We undertake not to change the open source license (MIT license) applicable
 # to the current version of the project delivered to anyone in the future.
 
+import json
 import logging
 
 from django.conf import settings
@@ -115,17 +116,20 @@ class DevSandboxViewSet(GenericViewSet, ApplicationCodeInPathMixin):
             source_code_cfg.source_fetch_url = upload_source_code(module, version_info, source_dir, owner)
             source_code_cfg.source_fetch_method = SourceCodeFetchMethod.BK_REPO
 
+        envs = generate_envs(module)
+        if data["inject_staging_env_vars"]:
+            stag_env = module.get_envs(AppEnvironment.STAGING)
+            envs.update(get_env_variables(stag_env))
+
+        env_lists = [{"key": k, "value": v, "source": "stag"} for k, v in envs.items()]
+
         dev_sandbox = DevSandbox.objects.create(
             module=module,
             owner=owner,
             version_info=version_info,
             enable_code_editor=data["enable_code_editor"],
+            env_vars=json.dumps(env_lists),
         )
-
-        envs = generate_envs(module)
-        if data["inject_staging_env_vars"]:
-            stag_env = module.get_envs(AppEnvironment.STAGING)
-            envs.update(get_env_variables(stag_env))
 
         # 下发沙箱 k8s 资源
         try:
